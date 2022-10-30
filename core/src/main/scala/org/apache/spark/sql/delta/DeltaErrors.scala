@@ -713,6 +713,16 @@ trait DeltaErrorsBase
       messageParameters = Array(confKey, DeltaSQLConf.ALLOW_ARBITRARY_TABLE_PROPERTIES.key))
   }
 
+  def ambiguousConfigurationKeysException(
+      confKeyA: String,
+      valueA: String,
+      confKeyB: String,
+      valueB: String): Throwable = {
+    new DeltaAnalysisException(
+      errorClass = "DELTA_AMBIGUOUS_CONFIGURATIONS",
+      messageParameters = Array(confKeyA, valueA, confKeyB, valueB))
+  }
+
   def cdcNotAllowedInThisVersion(): Throwable = {
     new DeltaAnalysisException(
       errorClass = "DELTA_CDC_NOT_ALLOWED_IN_THIS_VERSION",
@@ -1176,7 +1186,7 @@ trait DeltaErrorsBase
          |Delta configuration: ${prettyMap{deltaConfiguration}}
          |If you would like to merge the configurations (update existing fields and insert new
          |ones), set the SQL configuration
-         |spark.databricks.delta.convert.metadataCheck.enabled to false.
+         |spark.delta.convert.metadataCheck.enabled to false.
        """.stripMargin)
   }
 

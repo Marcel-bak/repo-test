@@ -28,9 +28,14 @@ import org.apache.spark.storage.StorageLevel
  * [[SQLConf]] entries for Delta features.
  */
 trait DeltaSQLConfBase {
-  def buildConf(key: String): ConfigBuilder = SQLConf.buildConf(s"spark.databricks.delta.$key")
+  def buildConf(key: String): ConfigBuilder =
+    SQLConf
+      .buildConf(s"spark.delta.$key")
+      .withAlternative(s"spark.databricks.delta.$key")
   def buildStaticConf(key: String): ConfigBuilder =
-    SQLConf.buildStaticConf(s"spark.databricks.delta.$key")
+    SQLConf
+      .buildStaticConf(s"spark.delta.$key")
+      .withAlternative(s"spark.databricks.delta.$key")
 
   val RESOLVE_TIME_TRAVEL_ON_IDENTIFIER =
     buildConf("timeTravel.resolveOnIdentifier.enabled")
@@ -307,7 +312,7 @@ trait DeltaSQLConfBase {
     buildConf("vacuum.parallelDelete.enabled")
       .doc("Enables parallelizing the deletion of files during a vacuum command. Enabling " +
         "may result hitting rate limits on some storage backends. When enabled, parallelization " +
-        "is controlled 'spark.databricks.delta.vacuum.parallelDelete.parallelism'.")
+        "is controlled 'spark.delta.vacuum.parallelDelete.parallelism'.")
       .booleanConf
       .createWithDefault(false)
 
@@ -470,7 +475,7 @@ trait DeltaSQLConfBase {
         } catch {
           case _: IllegalArgumentException => true
         },
-        """"spark.databricks.delta.merge.materializeSource.rddStorageLevel" """ +
+        """"spark.delta.merge.materializeSource.rddStorageLevel" """ +
           "must be a valid StorageLevel")
       .createWithDefault("DISK_ONLY")
 
@@ -487,7 +492,7 @@ trait DeltaSQLConfBase {
         } catch {
           case _: IllegalArgumentException => true
         },
-        """"spark.databricks.delta.merge.materializeSource.rddStorageLevelRetry" """ +
+        """"spark.delta.merge.materializeSource.rddStorageLevelRetry" """ +
           "must be a valid StorageLevel")
       .createWithDefault("DISK_ONLY_2")
 
