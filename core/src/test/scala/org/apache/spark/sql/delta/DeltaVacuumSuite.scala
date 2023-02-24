@@ -720,7 +720,7 @@ class DeltaVacuumSuite
           ExpectFailure(
             GC(false, Nil, Some(0)),
             classOf[IllegalArgumentException],
-            Seq("spark.databricks.delta.retentionDurationCheck.enabled = false", "168 hours"))
+            Seq("spark.delta.retentionDurationCheck.enabled = false", "168 hours"))
         )
       }
 
