@@ -19,6 +19,7 @@ package io.delta.tables.execution
 import scala.collection.Map
 
 import org.apache.spark.sql.delta.{DeltaErrors, DeltaHistoryManager, DeltaLog, PreprocessTableUpdate}
+import org.apache.spark.sql.delta.DeltaTableUtils.withActiveSession
 import org.apache.spark.sql.delta.commands.{DeleteCommand, DeltaGenerateCommand, VacuumCommand}
 import org.apache.spark.sql.delta.util.AnalysisHelper
 import io.delta.tables.DeltaTable
@@ -35,42 +36,48 @@ import org.apache.spark.sql.catalyst.plans.logical._
 trait DeltaTableOperations extends AnalysisHelper { self: DeltaTable =>
 
   protected def executeDelete(condition: Option[Expression]): Unit = improveUnsupportedOpError {
-    val delete = DeleteFromTable(self.toDF.queryExecution.analyzed, condition)
-    toDataset(sparkSession, delete)
+    withActiveSession(sparkSession) {
+      val delete = DeleteFromTable(self.toDF.queryExecution.analyzed, condition)
+      toDataset(sparkSession, delete)
+    }
   }
 
   protected def executeHistory(
       deltaLog: DeltaLog,
       limit: Option[Int] = None,
-      tableId: Option[TableIdentifier] = None): DataFrame = {
+      tableId: Option[TableIdentifier] = None): DataFrame = withActiveSession(sparkSession) {
     val history = deltaLog.history
-    val spark = self.toDF.sparkSession
-    spark.createDataFrame(history.getHistory(limit))
+    sparkSession.createDataFrame(history.getHistory(limit))
   }
 
   protected def executeGenerate(tblIdentifier: String, mode: String): Unit = {
-    val tableId: TableIdentifier = sparkSession
-      .sessionState
-      .sqlParser
-      .parseTableIdentifier(tblIdentifier)
-    val generate = DeltaGenerateCommand(mode, tableId)
-    toDataset(sparkSession, generate)
+    withActiveSession(sparkSession) {
+      val tableId: TableIdentifier = sparkSession
+        .sessionState
+        .sqlParser
+        .parseTableIdentifier(tblIdentifier)
+      val generate = DeltaGenerateCommand(mode, tableId)
+      toDataset(sparkSession, generate)
+    }
   }
 
   protected def executeUpdate(
       set: Map[String, Column],
       condition: Option[Column]): Unit = improveUnsupportedOpError {
-    val assignments = set.map { case (targetColName, column) =>
-      Assignment(UnresolvedAttribute.quotedString(targetColName), column.expr)
-    }.toSeq
-    val update = UpdateTable(self.toDF.queryExecution.analyzed, assignments, condition.map(_.expr))
-    toDataset(sparkSession, update)
+    withActiveSession(sparkSession) {
+      val assignments = set.map { case (targetColName, column) =>
+        Assignment(UnresolvedAttribute.quotedString(targetColName), column.expr)
+      }.toSeq
+      val update =
+        UpdateTable(self.toDF.queryExecution.analyzed, assignments, condition.map(_.expr))
+      toDataset(sparkSession, update)
+    }
   }
 
   protected def executeVacuum(
       deltaLog: DeltaLog,
       retentionHours: Option[Double],
-      tableId: Option[TableIdentifier] = None): DataFrame = {
+      tableId: Option[TableIdentifier] = None): DataFrame = withActiveSession(sparkSession) {
     VacuumCommand.gc(sparkSession, deltaLog, false, retentionHours)
     sparkSession.emptyDataFrame
   }
