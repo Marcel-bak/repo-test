@@ -3367,7 +3367,7 @@ class MetadataMismatchErrorBuilder {
   }
 
   def finalizeAndThrow(conf: SQLConf): Unit = {
-    throw new AnalysisException(bits.mkString("\n"))
+    throw new AnalysisException(bits.mkString("\n"), errorClass = Some("DELTA_METADATA_MISMATCH"))
   }
 }
 
