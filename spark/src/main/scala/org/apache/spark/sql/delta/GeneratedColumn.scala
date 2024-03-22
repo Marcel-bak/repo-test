@@ -264,7 +264,7 @@ object GeneratedColumn extends DeltaLogging with AnalysisHelper {
     }
   }
 
-  def getGeneratedColumnsAndColumnsUsedByGeneratedColumns(schema: StructType): Set[String] = {
+  def getGeneratedColumnsAndColumnsUsedByGeneratedColumns(schema: StructType): Set[Seq[String]] = {
     val generationExprs = schema.flatMap { col =>
       getGenerationExpressionStr(col).map { exprStr =>
         val expr = parseGenerationExpression(SparkSession.active, exprStr)
@@ -281,12 +281,12 @@ object GeneratedColumn extends DeltaLogging with AnalysisHelper {
         case Project(exprs, _) =>
           exprs.flatMap {
             case Alias(expr, column) =>
-              expr.references.map {
-                case a: AttributeReference => a.name
-                case other =>
-                  // Should not happen since the columns should be resolved
-                  throw DeltaErrors.unexpectedAttributeReference(s"$other")
-              }.toSeq :+ column
+              // Get just the outer level attributes or struct extractors
+              expr.collect {
+                case ExtractBaseColumn(nameParts, dataType)
+                    if !dataType.isInstanceOf[StructType] =>
+                  nameParts
+              }.toSeq :+ Seq(column)
             case other =>
               // Should not happen since we use `Alias` expressions.
               throw DeltaErrors.unexpectedAlias(s"$other")
@@ -296,7 +296,7 @@ object GeneratedColumn extends DeltaLogging with AnalysisHelper {
           throw DeltaErrors.unexpectedProject(other.toString())
       }
     // Converting columns to lower case is fine since Delta's schema is always case insensitive.
-    generatedColumnsAndColumnsUsedByGeneratedColumns.map(_.toLowerCase(Locale.ROOT)).toSet
+    generatedColumnsAndColumnsUsedByGeneratedColumns.map(_.map(_.toLowerCase(Locale.ROOT))).toSet
   }
 
   private def createFieldPath(nameParts: Seq[String]): String = {
@@ -581,7 +581,7 @@ object GeneratedColumn extends DeltaLogging with AnalysisHelper {
 }
 
 /**
- * Finds the full dot-separated path to a field and the data type of the field. This unifies
+ * Finds the sequence of struct field names to a field and the data type of the field. This unifies
  * handling of nested and non-nested fields, and allows pattern matching on the data type.
  */
 object ExtractBaseColumn {

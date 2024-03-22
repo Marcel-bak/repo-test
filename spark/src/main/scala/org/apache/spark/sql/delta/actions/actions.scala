@@ -1018,7 +1018,7 @@ case class Metadata(
    * we should never change its type.
    */
   @JsonIgnore
-  lazy val fixedTypeColumns: Set[String] =
+  lazy val fixedTypeColumns: Set[Seq[String]] =
     GeneratedColumn.getGeneratedColumnsAndColumnsUsedByGeneratedColumns(schema)
 
   /**

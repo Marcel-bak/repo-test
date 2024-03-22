@@ -168,13 +168,13 @@ object SchemaMergingUtils {
       dataSchema: StructType,
       allowImplicitConversions: Boolean = false,
       keepExistingType: Boolean = false,
-      fixedTypeColumns: Set[String] = Set.empty,
+      fixedTypeColumns: Set[Seq[String]] = Set.empty,
       caseSensitive: Boolean = false): StructType = {
     checkColumnNameDuplication(dataSchema, "in the data to save", caseSensitive)
     def merge(
         current: DataType,
         update: DataType,
-        fixedTypeColumnsSet: Set[String] = Set.empty): DataType = {
+        parentNames: Seq[String] = Seq.empty): DataType = {
       (current, update) match {
         case (StructType(currentFields), StructType(updateFields)) =>
           // Merge existing fields.
@@ -182,7 +182,8 @@ object SchemaMergingUtils {
           val updatedCurrentFields = currentFields.map { currentField =>
             updateFieldMap.get(currentField.name) match {
               case Some(updateField) =>
-                if (fixedTypeColumnsSet.contains(currentField.name.toLowerCase(Locale.ROOT)) &&
+                val nameParts = parentNames :+ currentField.name.toLowerCase(Locale.ROOT)
+                if (fixedTypeColumns.contains(nameParts) &&
                     !equalsIgnoreCaseAndCompatibleNullability(
                       currentField.dataType, updateField.dataType)) {
                   throw new DeltaAnalysisException(
@@ -194,7 +195,7 @@ object SchemaMergingUtils {
                 try {
                   StructField(
                     currentField.name,
-                    merge(currentField.dataType, updateField.dataType),
+                    merge(currentField.dataType, updateField.dataType, nameParts),
                     currentField.nullable,
                     currentField.metadata)
                 } catch {
@@ -281,8 +282,7 @@ object SchemaMergingUtils {
             messageParameters = Array(current.toString, update.toString))
       }
     }
-    merge(tableSchema, dataSchema, fixedTypeColumns.map(_.toLowerCase(Locale.ROOT)))
-      .asInstanceOf[StructType]
+    merge(tableSchema, dataSchema).asInstanceOf[StructType]
   }
 
   /**
