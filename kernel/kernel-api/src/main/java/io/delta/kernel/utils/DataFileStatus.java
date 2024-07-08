@@ -18,6 +18,8 @@ package io.delta.kernel.utils;
 
 import java.util.Optional;
 
+import io.delta.kernel.statistics.DataFileStatistics;
+
 /**
  * Extends {@link FileStatus} to include additional details such as column level statistics
  * of the data file in the Delta Lake table.
@@ -29,16 +31,16 @@ public class DataFileStatus extends FileStatus {
     /**
      * Create a new instance of {@link DataFileStatus}.
      *
-     * @param path Fully qualified file path.
-     * @param size File size in bytes.
+     * @param path             Fully qualified file path.
+     * @param size             File size in bytes.
      * @param modificationTime Last modification time of the file in epoch milliseconds.
-     * @param statistics Optional column and file level statistics in the data file.
+     * @param statistics       Optional column and file level statistics in the data file.
      */
     public DataFileStatus(
-            String path,
-            long size,
-            long modificationTime,
-            Optional<DataFileStatistics> statistics) {
+        String path,
+        long size,
+        long modificationTime,
+        Optional<DataFileStatistics> statistics) {
         super(path, size, modificationTime);
         this.statistics = statistics;
     }
