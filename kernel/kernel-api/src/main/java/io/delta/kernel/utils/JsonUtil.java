@@ -17,7 +17,9 @@ package io.delta.kernel.utils;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.io.UncheckedIOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -30,6 +32,19 @@ public class JsonUtil {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final JsonFactory FACTORY = new JsonFactory();
+    private static final Map<Character, String> JSON_ESCAPE_MAP;
+    static {
+        Map<Character, String> map = new HashMap<>();
+        map.put('"', "\\\"");
+        map.put('\\', "\\\\");
+        map.put('/', "\\/");  // Escaping forward slash
+        map.put('\b', "\\b");
+        map.put('\f', "\\f");
+        map.put('\n', "\\n");
+        map.put('\r', "\\r");
+        map.put('\t', "\\t");
+        JSON_ESCAPE_MAP = Collections.unmodifiableMap(map);
+    }
 
     public static JsonFactory factory() {
         return FACTORY;
@@ -41,12 +56,12 @@ public class JsonUtil {
 
     @FunctionalInterface
     public interface ToJson {
-        void generate(JsonGenerator generator) throws IOException;
+        void generate(JsonWriter jsonWriter) throws IOException;
     }
 
     @FunctionalInterface
     public interface JsonValueWriter<T> {
-        void write(JsonGenerator generator, T value) throws IOException;
+        void write(JsonWriter jsonWriter, T value) throws IOException;
     }
 
     /**
@@ -57,12 +72,41 @@ public class JsonUtil {
      */
     public static String generate(ToJson toJson) {
         try (StringWriter writer = new StringWriter();
-             JsonGenerator generator = JsonUtil.factory().createGenerator(writer)) {
-            toJson.generate(generator);
-            generator.flush();
+             JsonWriter jsonWriter = new StringWriterJsonWriter(writer)) {
+            toJson.generate(jsonWriter);
+            jsonWriter.flush();
             return writer.toString();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Utility class escapes the characters in a String using Json String rules.
+     * The only difference between Java strings and Json strings is that in Json,
+     * forward-slash (/) is escaped.
+     *
+     * See http:// www. ietf. org/ rfc/ rfc4627.txt for further details.
+     * @param input The input string.
+     * @return String with escaped values, null if null string input
+     */
+    public static String escapeJson(String input) {
+        String result = null;
+        if (input != null) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < input.length(); i++) {
+                char c = input.charAt(i);
+                String escaped = JSON_ESCAPE_MAP.get(c);
+                if (escaped != null) {
+                    sb.append(escaped);
+                } else if (Character.isISOControl(c)) {
+                    sb.append(String.format("\\u%04x", (int) c));
+                } else {
+                    sb.append(c);
+                }
+            }
+            result = sb.toString();
+        }
+        return result;
     }
 }

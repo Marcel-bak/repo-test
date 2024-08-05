@@ -28,12 +28,11 @@ import static java.time.ZoneOffset.UTC;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 import static java.time.temporal.ChronoUnit.MILLIS;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import io.delta.kernel.expressions.Column;
 import io.delta.kernel.expressions.Literal;
 import io.delta.kernel.types.*;
 import io.delta.kernel.utils.JsonUtil;
+import io.delta.kernel.utils.JsonWriter;
 
 /**
  * Statistics about data file in a Delta Lake table.
@@ -142,7 +141,7 @@ public class DataFileStatistics {
         });
     }
 
-    private <T> void writeJsonValues(JsonGenerator generator,
+    private <T> void writeJsonValues(JsonWriter jsonWriter,
                                      StructType schema,
                                      Map<Column, T> values,
                                      Column parentColPath,
@@ -150,21 +149,21 @@ public class DataFileStatistics {
         for (StructField field : schema.fields()) {
             Column colPath = parentColPath.append(field.getName());
             if (field.getDataType() instanceof StructType) {
-                generator.writeObjectFieldStart(field.getName());
-                writeJsonValues(generator, (StructType) field.getDataType(), values, colPath,
+                jsonWriter.writeObjectFieldStart(field.getName());
+                writeJsonValues(jsonWriter, (StructType) field.getDataType(), values, colPath,
                     writer);
-                generator.writeEndObject();
+                jsonWriter.writeEndObject();
             } else {
                 T value = values.get(colPath);
                 if (value != null) {
-                    generator.writeFieldName(field.getName());
-                    writer.write(generator, value);
+                    jsonWriter.writeFieldName(field.getName());
+                    writer.write(jsonWriter, value);
                 }
             }
         }
     }
 
-    private void writeJsonValue(JsonGenerator generator,
+    private void writeJsonValue(JsonWriter jsonWriter,
                                 Literal literal) throws IOException {
         if (literal == null || literal.getValue() == null) {
             return;
@@ -172,27 +171,27 @@ public class DataFileStatistics {
         DataType type = literal.getDataType();
         Object value = literal.getValue();
         if (type instanceof BooleanType) {
-            generator.writeBoolean((Boolean) value);
+            jsonWriter.writeBoolean((Boolean) value);
         } else if (type instanceof ByteType) {
-            generator.writeNumber(((Number) value).byteValue());
+            jsonWriter.writeNumber(((Number) value).byteValue());
         } else if (type instanceof ShortType) {
-            generator.writeNumber(((Number) value).shortValue());
+            jsonWriter.writeNumber(((Number) value).shortValue());
         } else if (type instanceof IntegerType) {
-            generator.writeNumber(((Number) value).intValue());
+            jsonWriter.writeNumber(((Number) value).intValue());
         } else if (type instanceof LongType) {
-            generator.writeNumber(((Number) value).longValue());
+            jsonWriter.writeNumber(((Number) value).longValue());
         } else if (type instanceof FloatType) {
-            generator.writeNumber(((Number) value).floatValue());
+            jsonWriter.writeNumber(((Number) value).floatValue());
         } else if (type instanceof DoubleType) {
-            generator.writeNumber(((Number) value).doubleValue());
+            jsonWriter.writeNumber(((Number) value).doubleValue());
         } else if (type instanceof StringType) {
-            generator.writeString((String) value);
+            jsonWriter.writeString((String) value);
         } else if (type instanceof BinaryType) {
-            generator.writeString(new String((byte[]) value, StandardCharsets.UTF_8));
+            jsonWriter.writeString(new String((byte[]) value, StandardCharsets.UTF_8));
         } else if (type instanceof DecimalType) {
-            generator.writeNumber((BigDecimal) value);
+            jsonWriter.writeNumber((BigDecimal) value);
         } else if (type instanceof DateType) {
-            generator.writeString(
+            jsonWriter.writeString(
                 LocalDate.ofEpochDay(((Number) value).longValue()).format(ISO_LOCAL_DATE));
         } else if (type instanceof TimestampType || type instanceof TimestampNTZType) {
             long epochMicros = (long) value;
@@ -203,7 +202,7 @@ public class DataFileStatistics {
                 nanoAdjustment += MICROSECONDS_PER_SECOND * NANOSECONDS_PER_MICROSECOND;
             }
             Instant instant = Instant.ofEpochSecond(epochSeconds, nanoAdjustment);
-            generator.writeString(TIMESTAMP_FORMATTER.format(
+            jsonWriter.writeString(TIMESTAMP_FORMATTER.format(
                 ZonedDateTime.ofInstant(instant.truncatedTo(MILLIS), UTC)));
         } else {
             throw new IllegalArgumentException("Unsupported stats data type: " + type);
