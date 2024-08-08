@@ -24,7 +24,10 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.delta.kernel.*;
+import io.delta.kernel.Meta;
+import io.delta.kernel.Operation;
+import io.delta.kernel.Transaction;
+import io.delta.kernel.TransactionCommitResult;
 import io.delta.kernel.data.Row;
 import io.delta.kernel.engine.Engine;
 import io.delta.kernel.exceptions.ConcurrentWriteException;
@@ -33,11 +36,15 @@ import io.delta.kernel.types.StructType;
 import io.delta.kernel.utils.CloseableIterable;
 import io.delta.kernel.utils.CloseableIterator;
 
-import io.delta.kernel.internal.actions.*;
+import io.delta.kernel.internal.actions.CommitInfo;
+import io.delta.kernel.internal.actions.Metadata;
+import io.delta.kernel.internal.actions.Protocol;
+import io.delta.kernel.internal.actions.SetTransaction;
 import io.delta.kernel.internal.data.TransactionStateRow;
 import io.delta.kernel.internal.fs.Path;
 import io.delta.kernel.internal.replay.ConflictChecker;
 import io.delta.kernel.internal.replay.ConflictChecker.TransactionRebaseState;
+import io.delta.kernel.internal.skipping.DataSkippingUtils;
 import io.delta.kernel.internal.util.Clock;
 import io.delta.kernel.internal.util.ColumnMapping;
 import io.delta.kernel.internal.util.FileNames;
@@ -333,6 +340,14 @@ public class TransactionImpl
      */
     public static List<Column> getStatisticsColumns(Engine engine, Row transactionState) {
         // TODO: implement this once we start supporting collecting stats
-        return Collections.emptyList();
+        int numIndexedCols = Integer.parseInt(TransactionStateRow.getConfiguration(transactionState)
+                .getOrDefault(DataSkippingUtils.DATA_SKIPPING_NUM_INDEXED_COLS,
+                        String.valueOf(DataSkippingUtils.DEFAULT_DATA_SKIPPING_NUM_INDEXED_COLS)));
+
+        // For now, only support the first numIndexedCols columns
+        return TransactionStateRow.getLogicalSchema(engine, transactionState).fields().stream()
+                .limit(numIndexedCols)
+                .map(field -> new Column(field.getName()))
+                .collect(Collectors.toList());
     }
 }

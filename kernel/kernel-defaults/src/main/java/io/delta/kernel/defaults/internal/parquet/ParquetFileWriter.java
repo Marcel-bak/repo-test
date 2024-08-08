@@ -32,10 +32,14 @@ import org.apache.parquet.schema.MessageType;
 import static org.apache.parquet.hadoop.ParquetOutputFormat.*;
 
 import io.delta.kernel.Meta;
-import io.delta.kernel.data.*;
+import io.delta.kernel.data.ColumnVector;
+import io.delta.kernel.data.ColumnarBatch;
+import io.delta.kernel.data.FilteredColumnarBatch;
 import io.delta.kernel.expressions.Column;
+import io.delta.kernel.statistics.DataFileStatistics;
 import io.delta.kernel.types.StructType;
-import io.delta.kernel.utils.*;
+import io.delta.kernel.utils.CloseableIterator;
+import io.delta.kernel.utils.DataFileStatus;
 
 import io.delta.kernel.internal.util.Utils;
 import static io.delta.kernel.internal.util.Preconditions.checkArgument;

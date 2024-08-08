@@ -26,17 +26,22 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.shaded.com.google.common.collect.ImmutableMultimap;
 import org.apache.hadoop.shaded.com.google.common.collect.Multimap;
-import org.apache.parquet.column.statistics.*;
+import org.apache.parquet.column.statistics.BinaryStatistics;
+import org.apache.parquet.column.statistics.IntStatistics;
+import org.apache.parquet.column.statistics.LongStatistics;
+import org.apache.parquet.column.statistics.Statistics;
 import org.apache.parquet.hadoop.ParquetFileReader;
-import org.apache.parquet.hadoop.metadata.*;
+import org.apache.parquet.hadoop.metadata.BlockMetaData;
+import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.LogicalTypeAnnotation.DecimalLogicalTypeAnnotation;
 import static org.apache.hadoop.shaded.com.google.common.collect.ImmutableMap.toImmutableMap;
 
 import io.delta.kernel.expressions.Column;
 import io.delta.kernel.expressions.Literal;
+import io.delta.kernel.statistics.DataFileStatistics;
 import io.delta.kernel.types.*;
-import io.delta.kernel.utils.DataFileStatistics;
 
 import static io.delta.kernel.internal.util.Preconditions.checkArgument;
 
@@ -121,7 +126,7 @@ public class ParquetStatsReader {
             maxValues.put(statsColumn, maxValue);
         }
 
-        return new DataFileStatistics(rowCount, minValues, maxValues, nullCounts);
+        return new DataFileStatistics(dataSchema, rowCount, minValues, maxValues, nullCounts);
     }
 
     private static Literal decodeMinMaxStat(

@@ -15,14 +15,19 @@
  */
 package io.delta.kernel.internal.data;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 import static java.util.stream.Collectors.toMap;
 
 import io.delta.kernel.Transaction;
 import io.delta.kernel.data.Row;
 import io.delta.kernel.engine.Engine;
-import io.delta.kernel.types.*;
+import io.delta.kernel.types.ArrayType;
+import io.delta.kernel.types.MapType;
+import io.delta.kernel.types.StringType;
+import io.delta.kernel.types.StructType;
 
 import io.delta.kernel.internal.actions.Metadata;
 import io.delta.kernel.internal.util.VectorUtils;
@@ -32,7 +37,8 @@ public class TransactionStateRow extends GenericRow {
     private static final StructType SCHEMA = new StructType()
             .add("logicalSchemaString", StringType.STRING)
             .add("partitionColumns", new ArrayType(StringType.STRING, false))
-            .add("tablePath", StringType.STRING);
+            .add("tablePath", StringType.STRING)
+            .add("configuration", new MapType(StringType.STRING, StringType.STRING, false));
 
     private static final Map<String, Integer> COL_NAME_TO_ORDINAL =
             IntStream.range(0, SCHEMA.length())
@@ -44,6 +50,7 @@ public class TransactionStateRow extends GenericRow {
         valueMap.put(COL_NAME_TO_ORDINAL.get("logicalSchemaString"), metadata.getSchemaString());
         valueMap.put(COL_NAME_TO_ORDINAL.get("partitionColumns"), metadata.getPartitionColumns());
         valueMap.put(COL_NAME_TO_ORDINAL.get("tablePath"), tablePath);
+        valueMap.put(COL_NAME_TO_ORDINAL.get("configuration"), metadata.getConfigurationMapValue());
         return new TransactionStateRow(valueMap);
     }
 
@@ -90,5 +97,17 @@ public class TransactionStateRow extends GenericRow {
      */
     public static String getTablePath(Row transactionState) {
         return transactionState.getString(COL_NAME_TO_ORDINAL.get("tablePath"));
+    }
+
+    /**
+     * Get the configuration from the transaction state {@link Row} returned by
+     * {@link Transaction#getTransactionState(Engine)}
+     *
+     * @param transactionState Transaction state state {@link Row}
+     * @return Configuration of the table as a map.
+     */
+    public static Map<String, String> getConfiguration(Row transactionState) {
+        return VectorUtils.toJavaMap(
+                transactionState.getMap(COL_NAME_TO_ORDINAL.get("configuration")));
     }
 }

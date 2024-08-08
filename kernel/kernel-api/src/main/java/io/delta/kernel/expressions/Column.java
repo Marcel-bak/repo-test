@@ -37,7 +37,7 @@ public final class Column implements Expression {
      * Create a column expression for referring to a column.
      */
     public Column(String name) {
-        this.names = new String[] {name};
+        this.names = new String[]{name};
     }
 
     /**
@@ -62,7 +62,21 @@ public final class Column implements Expression {
     @Override
     public String toString() {
 
-        return "column(" + quoteColumnPath(names)  + ")";
+        return "column(" + quoteColumnPath(names) + ")";
+    }
+
+    /**
+     * Returns a new column that appends the input column name to the current column.
+     * Corresponds to an additional level of nested reference.
+     *
+     * @param name the column name to append
+     * @return the new column
+     */
+    public Column append(String name) {
+        String[] newNames = new String[names.length + 1];
+        System.arraycopy(names, 0, newNames, 0, names.length);
+        newNames[names.length] = name;
+        return new Column(newNames);
     }
 
     private static String quoteColumnPath(String[] names) {
