@@ -239,10 +239,10 @@ public class SnapshotManager {
       logger.info("{}: Starting the deletion of log files older than {}",
           tablePath, fileCutOffTime);
       int numDeleted = 0;
-      try(CloseableIterator<FileStatus> files =
+      try (CloseableIterator<FileStatus> files =
           listExpiredDeltaLogs(engine, checkpointMetaData, fileCutOffTime)) {
         while (files.hasNext()) {
-          if(engine.getFileSystemClient().delete(files.next().getPath())) {
+          if (engine.getFileSystemClient().delete(files.next().getPath())) {
             numDeleted++;
           }
         }
