@@ -162,8 +162,7 @@ public class Checkpointer {
   }
 
   private static boolean validCheckpointFile(FileStatus fileStatus) {
-    return FileNames.isCheckpointFile(new Path(fileStatus.getPath()))
-        && fileStatus.getSize() > 0;
+    return FileNames.isCheckpointFile(new Path(fileStatus.getPath())) && fileStatus.getSize() > 0;
   }
 
   /** The path to the file that holds metadata about the most recent checkpoint. */

@@ -220,8 +220,7 @@ public class SnapshotManager {
     Checkpointer checkpointer = new Checkpointer(logPath);
     checkpointer.writeLastCheckpointFile(engine, checkpointMetaData);
 
-    logger.info("{}: Last checkpoint metadata file is written for version: {}",
-        tablePath, version);
+    logger.info("{}: Last checkpoint metadata file is written for version: {}", tablePath, version);
 
     logger.info("{}: Finished checkpoint for version: {}", tablePath, version);
   }
@@ -250,8 +249,7 @@ public class SnapshotManager {
       throws IOException {
     logger.debug("{}: startVersion: {}", tablePath, startVersion);
     return wrapEngineExceptionThrowsIO(
-        () -> engine.getFileSystemClient()
-            .listFrom(FileNames.listingPrefix(logPath, startVersion)),
+        () -> engine.getFileSystemClient().listFrom(FileNames.listingPrefix(logPath, startVersion)),
         "Listing from %s",
         FileNames.listingPrefix(logPath, startVersion));
   }
@@ -272,8 +270,7 @@ public class SnapshotManager {
    * Returns an iterator containing a list of files found in the _delta_log directory starting with
    * the startVersion. Returns None if no files are found or the directory is missing.
    */
-  private Optional<CloseableIterator<FileStatus>> listFromOrNone(
-      Engine engine, long startVersion) {
+  private Optional<CloseableIterator<FileStatus>> listFromOrNone(Engine engine, long startVersion) {
     // LIST the directory, starting from the provided lower bound (treat missing dir as empty).
     // NOTE: "empty/missing" is _NOT_ equivalent to "contains no useful commit files."
     try {
@@ -327,11 +324,10 @@ public class SnapshotManager {
       Optional<Long> versionToLoad,
       Optional<TableCommitCoordinatorClientHandler> tableCommitHandlerOpt) {
     versionToLoad.ifPresent(
-        v -> checkArgument(
-            v >= startVersion,
-            format("versionToLoad=%s provided is less than startVersion=%s", v, startVersion)
-        )
-    );
+        v ->
+            checkArgument(
+                v >= startVersion,
+                format("versionToLoad=%s provided is less than startVersion=%s", v, startVersion)));
     logger.debug(
         "startVersion: {}, versionToLoad: {}, coordinated commits enabled: {}",
         startVersion,
@@ -391,8 +387,7 @@ public class SnapshotManager {
                 if (FileNames.isCommitFile(filePath)) {
                   maxDeltaVersionSeen.set(
                       Math.max(
-                          maxDeltaVersionSeen.get(),
-                          FileNames.deltaVersion(fileStatus.getPath())));
+                          maxDeltaVersionSeen.get(), FileNames.deltaVersion(fileStatus.getPath())));
                 }
                 output.add(fileStatus);
               }
@@ -428,7 +423,7 @@ public class SnapshotManager {
           .map(
               commitCoordinatorClientHandler -> {
                 logger.info(
-                    "Getting un-backfilled commits from commit coordinator for " + "table: {}",
+                    "Getting un-backfilled commits from commit coordinator for table: {}",
                     tablePath);
                 return commitCoordinatorClientHandler
                     .getCommits(startVersion, versionToLoad.orElse(null))
@@ -665,8 +660,7 @@ public class SnapshotManager {
 
     Tuple2<List<FileStatus>, List<FileStatus>> checkpointsAndDeltas =
         ListUtils.partition(
-            newFiles,
-            fileStatus -> FileNames.isCheckpointFile(new Path(fileStatus.getPath())));
+            newFiles, fileStatus -> FileNames.isCheckpointFile(new Path(fileStatus.getPath())));
     final List<FileStatus> checkpoints = checkpointsAndDeltas._1;
     final List<FileStatus> deltas = checkpointsAndDeltas._2;
 
@@ -759,8 +753,7 @@ public class SnapshotManager {
             .collect(Collectors.toCollection(LinkedList::new));
 
     logDebug(
-        () ->
-            format("deltaVersions: %s", Arrays.toString(deltaVersionsAfterCheckpoint.toArray())));
+        () -> format("deltaVersions: %s", Arrays.toString(deltaVersionsAfterCheckpoint.toArray())));
 
     final long newVersion =
         deltaVersionsAfterCheckpoint.isEmpty()

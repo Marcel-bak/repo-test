@@ -91,11 +91,11 @@ public final class DeltaHistoryManager {
       throws TableNotFoundException {
     try (CloseableIterator<FileStatus> files =
         listFrom(engine, logPath, 0)
-            .filter(fs -> {
-              final Path path = new Path(fs.getPath());
-              return FileNames.isCommitFile(path)
-                  || FileNames.isCheckpointFile(path);
-            })) {
+            .filter(
+                fs -> {
+                  final Path path = new Path(fs.getPath());
+                  return FileNames.isCommitFile(path) || FileNames.isCheckpointFile(path);
+                })) {
       if (!files.hasNext()) {
         // listFrom already throws an error if the directory is truly empty, thus this must
         // be because no files are checkpoint or delta files
