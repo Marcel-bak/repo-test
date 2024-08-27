@@ -68,7 +68,7 @@ public class ScanBuilderImpl implements ScanBuilder {
 
   @Override
   public ScanBuilder withReadSchema(Engine engine, StructType readSchema) {
-    // TODO: validate the readSchema is a subset of the table schema
+    snapshotSchema.checkNestedFields(readSchema);
     this.readSchema = readSchema;
     return this;
   }
