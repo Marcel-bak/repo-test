@@ -138,7 +138,7 @@ class DeltaTable private[tables](
     val delete = proto.DeleteFromTable
       .newBuilder()
       .setTarget(df.plan.getRoot)
-    condition.foreach(c => delete.setCondition(toExpr(c))
+    condition.foreach(c => delete.setCondition(toExpr(c)))
     val relation = proto.DeltaRelation.newBuilder().setDeleteFromTable(delete).build()
     val extension = com.google.protobuf.Any.pack(relation)
     val sparkRelation = spark_proto.Relation.newBuilder().setExtension(extension).build()
