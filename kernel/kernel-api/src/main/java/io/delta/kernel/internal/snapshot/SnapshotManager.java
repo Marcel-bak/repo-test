@@ -19,7 +19,6 @@ package io.delta.kernel.internal.snapshot;
 import static io.delta.kernel.internal.DeltaErrors.wrapEngineExceptionThrowsIO;
 import static io.delta.kernel.internal.TableFeatures.validateWriteSupportedTable;
 import static io.delta.kernel.internal.checkpoints.Checkpointer.findLastCompleteCheckpointBefore;
-import static io.delta.kernel.internal.fs.Path.getName;
 import static io.delta.kernel.internal.replay.LogReplayUtils.assertLogFilesBelongToTable;
 import static io.delta.kernel.internal.util.Preconditions.checkArgument;
 import static java.lang.String.format;
@@ -260,11 +259,11 @@ public class SnapshotManager {
    * file (e.g., 000000000.json), or checkpoint file. (e.g.,
    * 000000001.checkpoint.00001.00003.parquet)
    *
-   * @param fileName Name of the file (not the full path)
+   * @param filePath Full path of the file
    * @return Boolean Whether the file is delta log files
    */
-  private boolean isDeltaCommitOrCheckpointFile(String fileName) {
-    return FileNames.isCheckpointFile(fileName) || FileNames.isCommitFile(fileName);
+  private boolean isDeltaCommitOrCheckpointFile(Path filePath) {
+    return FileNames.isCheckpointFile(filePath) || FileNames.isCommitFile(filePath);
   }
 
   /**
@@ -350,16 +349,16 @@ public class SnapshotManager {
 
               while (fileStatusesIter.hasNext()) {
                 final FileStatus fileStatus = fileStatusesIter.next();
-                final String fileName = getName(fileStatus.getPath());
+                final Path filePath = new Path(fileStatus.getPath());
 
                 // Pick up all checkpoint and delta files
-                if (!isDeltaCommitOrCheckpointFile(fileName)) {
+                if (!isDeltaCommitOrCheckpointFile(filePath)) {
                   continue;
                 }
 
                 // Checkpoint files of 0 size are invalid but may be ignored silently when read,
                 // hence we drop them so that we never pick up such checkpoints.
-                if (FileNames.isCheckpointFile(fileName) && fileStatus.getSize() == 0) {
+                if (FileNames.isCheckpointFile(filePath) && fileStatus.getSize() == 0) {
                   continue;
                 }
                 // Take files until the version we want to load
@@ -385,7 +384,7 @@ public class SnapshotManager {
                 // files and so maxDeltaVersionSeen should be equal to fileVersion.
                 // But we are being defensive here and taking max of all the
                 // fileVersions seen.
-                if (FileNames.isCommitFile(fileName)) {
+                if (FileNames.isCommitFile(filePath)) {
                   maxDeltaVersionSeen.set(
                       Math.max(
                           maxDeltaVersionSeen.get(), FileNames.deltaVersion(fileStatus.getPath())));
@@ -424,7 +423,7 @@ public class SnapshotManager {
           .map(
               commitCoordinatorClientHandler -> {
                 logger.info(
-                    "Getting un-backfilled commits from commit coordinator for " + "table: {}",
+                    "Getting un-backfilled commits from commit coordinator for table: {}",
                     tablePath);
                 return commitCoordinatorClientHandler
                     .getCommits(startVersion, versionToLoad.orElse(null))
@@ -661,8 +660,7 @@ public class SnapshotManager {
 
     Tuple2<List<FileStatus>, List<FileStatus>> checkpointsAndDeltas =
         ListUtils.partition(
-            newFiles,
-            fileStatus -> FileNames.isCheckpointFile(new Path(fileStatus.getPath()).getName()));
+            newFiles, fileStatus -> FileNames.isCheckpointFile(new Path(fileStatus.getPath())));
     final List<FileStatus> checkpoints = checkpointsAndDeltas._1;
     final List<FileStatus> deltas = checkpointsAndDeltas._2;
 
@@ -682,7 +680,7 @@ public class SnapshotManager {
 
     final List<CheckpointInstance> checkpointFiles =
         checkpoints.stream()
-            .map(f -> new CheckpointInstance(f.getPath()))
+            .map(f -> new CheckpointInstance(new Path(f.getPath())))
             .collect(Collectors.toList());
     logDebug(() -> format("checkpointFiles: %s", Arrays.toString(checkpointFiles.toArray())));
 
