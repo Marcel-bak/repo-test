@@ -59,6 +59,7 @@ spark / sparkVersion := getSparkVersion()
 connectCommon / sparkVersion := getSparkVersion()
 connectClient / sparkVersion := getSparkVersion()
 connectServer / sparkVersion := getSparkVersion()
+goldenTables / sparkVersion := getSparkVersion()
 sharing / sparkVersion := getSparkVersion()
 
 // Dependent library versions
@@ -1381,14 +1382,15 @@ lazy val goldenTables = (project in file("connectors/golden-tables"))
     name := "golden-tables",
     commonSettings,
     skipReleaseSettings,
+    crossSparkSettings(),
     libraryDependencies ++= Seq(
       // Test Dependencies
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
       "commons-io" % "commons-io" % "2.8.0" % "test",
-      "org.apache.spark" %% "spark-sql" % defaultSparkVersion % "test",
-      "org.apache.spark" %% "spark-catalyst" % defaultSparkVersion % "test" classifier "tests",
-      "org.apache.spark" %% "spark-core" % defaultSparkVersion % "test" classifier "tests",
-      "org.apache.spark" %% "spark-sql" % defaultSparkVersion % "test" classifier "tests"
+      "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test",
+      "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
+      "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
+      "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test" classifier "tests"
     )
   )
 

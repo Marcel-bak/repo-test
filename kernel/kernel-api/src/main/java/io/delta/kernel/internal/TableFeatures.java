@@ -40,6 +40,8 @@ public class TableFeatures {
               add("appendOnly");
               add("inCommitTimestamp");
               add("columnMapping");
+              add("typeWidening-preview");
+              add("typeWidening");
             }
           });
 
@@ -66,6 +68,8 @@ public class TableFeatures {
             case "timestampNtz": // fall through
             case "vacuumProtocolCheck": // fall through
             case "variantType-preview": // fall through
+            case "typeWidening-preview": // fall through
+            case "typeWidening": // fall through
             case "v2Checkpoint":
               break;
             default:
@@ -125,6 +129,10 @@ public class TableFeatures {
             case "inCommitTimestamp":
               break;
             case "columnMapping":
+              break;
+            case "typeWidening-preview":
+              break;
+            case "typeWidening":
               break;
             default:
               throw unsupportedWriterFeature(tablePath, writerFeature);
