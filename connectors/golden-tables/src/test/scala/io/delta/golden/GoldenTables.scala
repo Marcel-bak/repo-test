@@ -30,7 +30,6 @@ import scala.language.implicitConversions
 import io.delta.tables.DeltaTable
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
-
 import org.apache.spark.SparkConf
 import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.sql.{QueryTest, Row}
@@ -1662,6 +1661,89 @@ class GoldenTables extends QueryTest with SharedSparkSession {
       tablePath,
       Row(0, 0) :: Nil,
       schema)
+  }
+
+  generateGoldenTable("type-widening") { tablePath =>
+    // Generate a table to cover the different type changes support by type widening.
+    // All type changes below require Spark 4.0, to generate the table, use:
+    //   GENERATE_GOLDEN_TABLES=1 build/sbt -DsparkVersion=master \
+    //   'goldenTables/testOnly *GoldenTables -- -z "type-widening"'
+    val initialSchema = new StructType()
+      .add("byte", ByteType)
+      .add("int", IntegerType)
+      .add("float", FloatType)
+      .add("decimal", DecimalType(10, 2))
+      .add("date", DateType)
+      .add("struct", new StructType().add("a", IntegerType))
+      .add("map", MapType(IntegerType, IntegerType))
+      .add("array", ArrayType(IntegerType))
+
+    writeDataWithSchema(
+      tablePath,
+      data = Seq(
+        Row(
+          1.toByte,
+          2,
+          3.4.toFloat,
+          BigDecimal(56789, scale = 2),
+          java.sql.Date.valueOf("2024-09-09"),
+          Row(1),
+          Map(2 -> 3),
+          Seq(4, 5))
+      ),
+      initialSchema
+    )
+
+   sql(
+    s"""
+      |ALTER TABLE delta.`$tablePath`
+      |SET TBLPROPERTIES('delta.enableTypeWidening' = 'true')
+      |""".stripMargin)
+
+    // Apply type changes to each columns and insert an additional row afterward.
+    val typeChanges = Seq(
+      "byte" -> LongType,
+      "int" -> LongType,
+      "float" -> DoubleType,
+      "decimal" -> DecimalType(20, 2),
+      "date" -> TimestampNTZType,
+      "struct.a" -> LongType,
+      "map.key" -> LongType,
+      "map.value" -> LongType,
+      "array.element" -> LongType
+    )
+    typeChanges.map { case (name, toType) =>
+      sql(
+        s"""
+           |ALTER TABLE delta.`$tablePath`
+           |CHANGE COLUMN $name TYPE ${toType.sql}
+           |""".stripMargin)
+    }
+    val updatedSchema = new StructType()
+      .add("byte", LongType)
+      .add("int", LongType)
+      .add("float", DoubleType)
+      .add("decimal", DecimalType(20, 2))
+      .add("date", TimestampNTZType)
+      .add("struct", new StructType().add("a", LongType))
+      .add("map", MapType(LongType, LongType))
+      .add("array", ArrayType(LongType))
+
+    writeDataWithSchema(
+      tablePath,
+      data = Seq(
+        Row(
+          Long.MaxValue,
+          Long.MaxValue,
+          1.234567890123d,
+          BigDecimal(1234567890123456L, scale = 2),
+          "2024-09-09 12:34:56.123456",
+          Row(Long.MaxValue),
+          Map(Long.MaxValue -> Long.MaxValue),
+          Seq(Long.MaxValue, Long.MinValue))
+      ),
+      updatedSchema
+    )
   }
 }
 
